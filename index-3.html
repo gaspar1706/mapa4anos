@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>4 Anos — O Nosso Mapa</title>
+<meta name="theme-color" content="#C1503F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no, date=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================ */
+  /*  PARA EDITAR CONTEÚDO (charadas, coordenadas, fotos, texto)   */
+  /*  vai a baixo no <script> e procura por "CONFIG".               */
+  /* ============================================================ */
+
+  :root{
+    --paper: #F7EFE3;
+    --paper-card: #FFFBF3;
+    --ink: #2B2420;
+    --ink-soft: #6b6155;
+    --rust: #C1503F;
+    --rust-deep: #9E3C2E;
+    --sage: #6B7A6E;
+    --gold: #D4A857;
+    --line: rgba(43,36,32,0.22);
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{ margin:0; padding:0; }
+  html{ -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+  body{
+    background: var(--paper);
+    background-image:
+      radial-gradient(circle at 10% 15%, rgba(212,168,87,0.10), transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(107,122,110,0.10), transparent 40%);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px 16px 48px;
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-bottom: max(48px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    overscroll-behavior-y: contain;
+  }
+
+  .app{ width:100%; max-width: 480px; position: relative; }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    color: var(--rust-deep);
+    text-align:center;
+    margin-bottom: 6px;
+  }
+
+  .title{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: clamp(26px, 7vw, 34px);
+    text-align:center;
+    margin: 0 0 18px;
+    line-height: 1.15;
+  }
+  .title em{ font-style: italic; color: var(--rust); font-weight: 500; }
+
+  /* ---------- map ---------- */
+  .map-wrap{
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 10px 6px 4px;
+    margin-bottom: 10px;
+    box-shadow: 0 8px 20px -10px rgba(43,36,32,0.15);
+  }
+  #mapSvg{ width:100%; height:auto; display:block; overflow: visible; }
+
+  .map-bg-path{ fill:none; stroke: var(--line); stroke-width: 3; stroke-dasharray: 1 9; stroke-linecap: round; }
+  .map-progress-path{ fill:none; stroke: var(--rust); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(.65,-0.15,.3,1.2); }
+  .pin-circle{ fill: var(--paper-card); stroke: var(--line); stroke-width: 1.6; transition: fill .35s ease, stroke .35s ease; }
+  .pin.visited .pin-circle{ fill: var(--paper); stroke: var(--sage); }
+  .pin-icon{ font-size: 12px; text-anchor: middle; transition: opacity .25s ease; }
+  .pin-label{ font-family:'JetBrains Mono', monospace; font-size: 8.5px; fill: var(--ink-soft); text-anchor: middle; opacity: 0; transition: opacity .4s ease .15s; }
+  .pin.visited .pin-label{ opacity: 1; }
+  .car-g{ transition: transform .9s cubic-bezier(.65,-0.15,.3,1.2); }
+  .car-icon{ font-size: 19px; text-anchor: middle; }
+
+  /* ---------- galeria de paragens ---------- */
+  .gallery-strip{
+    display:flex;
+    gap: 7px;
+    margin: 0 0 18px;
+    padding: 0 2px;
+  }
+  .gallery-slot{
+    flex: 1;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    border: 1.5px dashed var(--line);
+    background: var(--paper-card);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 15px;
+    overflow: hidden;
+    opacity: 0.45;
+    transition: opacity .4s ease, border-color .4s ease, transform .3s ease;
+  }
+  .gallery-slot.filled{
+    opacity: 1;
+    border-style: solid;
+    border-color: var(--sage);
+    animation: popIn .4s ease both;
+  }
+  @keyframes popIn{ from{ transform: scale(0.7); } to{ transform: scale(1); } }
+
+  /* ---------- card ---------- */
+  .card{
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 30px 26px;
+    box-shadow: 0 12px 30px -10px rgba(43,36,32,0.18);
+    animation: fadeUp .5s ease both;
+    position: relative;
+    overflow: hidden;
+  }
+  @keyframes fadeUp{ from{opacity:0; transform: translateY(10px);} to{opacity:1; transform:none;} }
+
+  .stage-label{ font-family:'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: var(--ink-soft); margin-bottom: 14px; display:flex; justify-content:space-between; align-items:center; gap: 8px; }
+
+  .riddle{ font-family:'Fraunces', serif; font-style: italic; font-size: 19px; line-height: 1.55; color: var(--ink); margin: 0 0 22px; }
+
+  input[type=text], input[type=tel]{
+    width: 100%;
+    font-family:'Inter', sans-serif;
+    font-size: 16px;
+    padding: 13px 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    margin-bottom: 12px;
+    outline: none;
+    text-align: center;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input[type=text]:focus, input[type=tel]:focus{ border-color: var(--rust); }
+
+  .btn{
+    width: 100%;
+    font-family:'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 14px;
+    min-height: 48px;
+    border-radius: 10px;
+    border: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    background: var(--rust);
+    color: #fff;
+    transition: transform .15s ease, background .2s ease;
+  }
+  .btn:active{ transform: scale(0.98); }
+  @media (hover: hover) and (pointer: fine){
+    .btn:hover{ background: var(--rust-deep); }
+  }
+
+  .btn-secondary{ background: var(--sage); }
+  @media (hover: hover) and (pointer: fine){
+    .btn-secondary:hover{ background: #57634f; }
+  }
+
+  .feedback{ font-size: 14px; margin: -4px 0 14px; min-height: 18px; }
+  .feedback.error{ color: var(--rust-deep); }
+  .feedback.success{ color: var(--sage); }
+
+  .center-text{ text-align:center; }
+  .lead{ font-size: 15px; color: var(--ink-soft); line-height: 1.6; margin-bottom: 22px; }
+
+  /* ---------- vault ---------- */
+  .lock-icon{ font-size: 34px; margin-bottom: 10px; display:block; }
+
+  /* ---------- live counter ---------- */
+  .counter{
+    display:flex;
+    justify-content:center;
+    gap: 14px;
+    margin: 4px 0 22px;
+  }
+  .counter-unit{ text-align:center; }
+  .counter-num{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--rust);
+    line-height: 1;
+    display:block;
+    margin-bottom: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .counter-label{ font-family:'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.08em; color: var(--ink-soft); text-transform: uppercase; }
+
+  /* ---------- stamp / reveal ---------- */
+  .reveal-wrap{ text-align:center; }
+  .stamp{
+    display:inline-flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    width: 88px; height: 88px;
+    border-radius: 50%;
+    border: 3px solid var(--rust);
+    color: var(--rust);
+    margin: 4px auto 14px;
+    transform: rotate(-8deg) scale(2.2);
+    opacity: 0;
+    animation: stampDown .55s cubic-bezier(.36,1.8,.4,1) .05s forwards;
+  }
+  .stamp .stamp-icon{ font-size: 26px; line-height:1; margin-bottom: 2px; }
+  .stamp .stamp-text{ font-family:'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 0.05em; }
+  @keyframes stampDown{ 0%{ opacity:0; transform: rotate(-8deg) scale(2.4); } 60%{ opacity:1; } 100%{ opacity:1; transform: rotate(-8deg) scale(1); } }
+
+  .reveal-place{ font-family:'Fraunces', serif; font-weight: 600; font-size: 18px; margin: 0 0 4px; }
+  .reveal-sub{ font-size: 13px; color: var(--ink-soft); margin: 0 0 6px; }
+
+  /* ---------- final ---------- */
+  .final-postcard{
+    border: 1.5px dashed var(--gold);
+    border-radius: 14px;
+    padding: 22px 20px;
+    background: linear-gradient(135deg, rgba(212,168,87,0.07), transparent 60%);
+    margin-bottom: 16px;
+  }
+  .final-postcard p{ font-family:'Fraunces', serif; font-size: 17px; line-height: 1.7; margin: 0 0 14px; white-space: pre-line; }
+  .signature{ text-align: right; font-family:'Fraunces', serif; font-style: italic; font-size: 16px; color: var(--rust); }
+
+  .heart-divider{ text-align:center; color: var(--rust); font-size: 13px; letter-spacing: 0.3em; margin: 0 0 18px; }
+
+  /* ---------- curiosidades ---------- */
+  .funfacts-toggle{
+    display:block;
+    width:100%;
+    background: none;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    color: var(--ink-soft);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 12px 14px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-appearance: none;
+    appearance: none;
+    margin-bottom: 4px;
+    transition: border-color .2s ease, color .2s ease;
+  }
+  @media (hover: hover) and (pointer: fine){
+    .funfacts-toggle:hover{ border-color: var(--rust); color: var(--rust-deep); }
+  }
+  .funfacts-list{
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height .5s ease;
+  }
+  .funfacts-list.open{ max-height: 900px; margin-top: 14px; }
+  .funfact-row{
+    display:flex;
+    align-items:flex-start;
+    gap: 10px;
+    text-align:left;
+    padding: 10px 2px;
+    border-top: 1px solid var(--line);
+  }
+  .funfact-row:first-child{ border-top: none; }
+  .funfact-icon{ font-size: 17px; line-height: 1.4; }
+  .funfact-text{ font-size: 13px; line-height: 1.45; color: var(--ink); }
+  .funfact-text b{ color: var(--ink); }
+  .funfact-diff{ color: var(--rust-deep); font-weight: 600; }
+
+  #confettiCanvas{
+    position: fixed;
+    top:0; left:0;
+    width: 100vw; height: 100vh;
+    width: 100dvw; height: 100dvh;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="eyebrow">DESDE 17.06.2022 · 4 ANOS · CINCO PARAGENS</div>
+  <h1 class="title">O nosso <em>mapa</em></h1>
+
+  <div class="map-wrap">
+    <svg id="mapSvg" viewBox="0 0 400 230"></svg>
+  </div>
+
+  <div class="gallery-strip" id="galleryStrip"></div>
+
+  <div class="card" id="card"></div>
+
+  <div style="text-align:center; margin-top:16px;">
+    <a href="#" id="resetLink" style="display:inline-block; padding:12px 16px; font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:0.05em; color:var(--ink-soft); opacity:0.45; text-decoration:none; touch-action:manipulation;">reiniciar progresso</a>
+  </div>
+</div>
+
+<canvas id="confettiCanvas"></canvas>
+
+<script>
+/* ================================================================
+   CONFIG — edita aqui o conteúdo do jogo.
+   ================================================================ */
+const CONFIG = {
+  coupleStartDate: "2022-06-17T00:00:00",
+
+  // Curiosidades verdadeiras: coisas conhecidas mais "novas" do que a
+  // relação (todas aconteceram depois de 17/06/2022). A idade de cada
+  // uma é calculada automaticamente sempre que a página abre.
+  funFacts: [
+    { icon: "🎧", label: "O Drake lançou o álbum \"Honestly, Nevermind\"", date: "2022-06-17T00:00:00" },
+    { icon: "🎵", label: "A Beyoncé lançou \"Break My Soul\"", date: "2022-06-20T00:00:00" },
+    { icon: "🍌", label: "Minions: A Origem de Gru estreou nos cinemas", date: "2022-07-01T00:00:00" },
+    { icon: "🧵", label: "A Meta lançou o Threads", date: "2023-07-05T00:00:00" },
+    { icon: "🤖", label: "O ChatGPT existe", date: "2022-11-30T00:00:00" },
+    { icon: "🐦", label: "O Twitter passou a chamar-se \"X\"", date: "2023-07-23T00:00:00" },
+    { icon: "🎬", label: "O filme Barbie estreou nos cinemas", date: "2023-07-21T00:00:00" }
+  ],
+
+  vault: {
+    enabled: true,
+    prompt: "Este mapa está fechado à chave.\nSó quem sabe a data que tudo começou é que entra.",
+    placeholder: "DD/MM/AAAA",
+    accepted: ["17062022", "17/06/2022", "17-06-2022"]
+  },
+
+  introTitle: "Vamos começar?",
+  introText: "Hoje não é só mais um dia. São 4 anos. E para os celebrar, vamos voltar a alguns dos sítios que nos trouxeram até aqui. Em cada paragem há uma frase. Descodifica, entra no carro, e vamos até lá. No fim... há uma surpresa.",
+  introButton: "Vamos a isto",
+
+  stages: [
+    {
+      label: "PARAGEM 1 de 5",
+      icon: "💋",
+      short: "O Parque",
+      riddle: "Há um sítio onde o tempo parou por um segundo, debaixo de umas árvores que já conhecemos de cor. Foi num banco qualquer desse sítio, sem aviso nenhum, que os nossos lábios se encontraram pela primeira vez. Sabes onde é?",
+      hint: "É um parque na Feira onde costumamos passear.",
+      answers: ["parque"]
+    },
+    {
+      label: "PARAGEM 2 de 5",
+      icon: "💍",
+      short: "Quinta do Castelo",
+      riddle: "Foi numa quinta com nome de castelo que um pedido nervoso transformou um \"talvez\" num \"sim\" para sempre. Sabes a que sítio estou a falar?",
+      hint: "Tem 'quinta' e 'castelo' no nome.",
+      answers: ["quinta", "castelo", "quinta do castelo"]
+    },
+    {
+      label: "PARAGEM 3 de 5",
+      icon: "🍖",
+      short: "Sabor da Picanha",
+      riddle: "Rodízio, brasas e uma fila de pratos que não vai parar de chegar — fica em Ovar, e é um sítio onde ainda nunca pusemos os pés os dois juntos. Hoje é o dia de o conhecermos. Sabes o nome desse rodízio?",
+      hint: "Rodízio brasileiro em Ovar — tem 'picanha' no nome.",
+      answers: ["sabor da picanha", "picanha"]
+    },
+    {
+      label: "PARAGEM 4 de 5",
+      icon: "🏖️",
+      short: "Praia do Furadouro",
+      riddle: "Areia, mar e uma faixa de praia comprida em Ovar — uma praia onde ainda não pusemos os pés juntos, mas isso muda ainda hoje. Qual é essa praia?",
+      hint: "É a praia do Furadouro, em Ovar.",
+      answers: ["furadouro", "praia do furadouro", "praia"]
+    },
+    {
+      label: "PARAGEM 5 de 5",
+      icon: "🎬",
+      short: "O Parque do Carro",
+      riddle: "Não é o sítio mais bonito do mundo, mas é um dos mais nossos: barato, bom, e por isso voltamos sempre — um carro, um filme, um saco ainda quente vindo do supermercado ao lado, e nenhuma pressa nenhuma para ir para casa. Sabes a que parque de estacionamento me refiro?",
+      hint: "É perto do Pingo Doce em São João da Madeira — onde vamos buscar comida boa e barata.",
+      answers: ["estacionamento", "parque de estacionamento", "pingo doce", "sao joao da madeira", "carro"]
+    }
+  ],
+
+  finalTitle: "Chegámos ao fim do mapa.",
+
+  finalMessage: `Quatro anos de memórias.
+Não imagino estes quatro anos sem ti.
+Não sei como seriam ou como tinham passado.
+Com 16 anos não conseguia encontrar um propósito para a vida ou motivo para estarmos vivos.
+Com o tempo percebi que o mais importante da vida é amar o nosso parceiro e, com isso, aproveitar tudo o que a vida tem de bom.
+Tudo pode acontecer, de mau ou de bom, mas nunca iremos largar o nosso companheiro.
+A pessoa com quem vamos ter mais conversas e que iremos passar a maior parte do tempo, até ao fim da vida.
+Estamos um para um, os dois juntos até que Deus me ajude e me livre da Ritinha que só me sabe chatear.
+Vivi contigo os momentos mais felizes da minha vida.
+Mudaste o meu pensamento, as minhas ideias e os meus objetivos… só espero é que não mudes o futuro porque isso tenho a certeza que vai ser contigo.`,
+
+  signature: "— Gasparzinho"
+};
+
+/* ================================================================
+   Lógica — não precisas de tocar a partir daqui.
+   ================================================================ */
+const svgNS = "http://www.w3.org/2000/svg";
+const STORAGE_KEY = 'mapa4anos_progresso_v1';
+
+function loadProgress(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw === null) return undefined;
+    const parsed = JSON.parse(raw);
+    return parsed.current;
+  }catch(e){ return undefined; } // modo privado ou pré-visualização sem storage — segue sem guardar
+}
+function saveProgress(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ current })); }
+  catch(e){ /* não é crítico — o jogo continua a funcionar dentro da mesma sessão */ }
+}
+
+const savedProgress = loadProgress();
+let current = (savedProgress !== undefined) ? savedProgress : (CONFIG.vault.enabled ? 'locked' : -1);
+const total = CONFIG.stages.length;
+let map = null;
+let counterInterval = null;
+
+function normalize(str){
+  return String(str).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+function normalizeDigits(str){ return String(str).replace(/[^\d]/g, ""); }
+
+/* ---------- mapa ---------- */
+function buildMap(){
+  const svg = document.getElementById('mapSvg');
+  const d = "M 22 175 C 85 175, 85 50, 155 50 C 225 50, 225 175, 295 175 C 340 175, 340 95, 378 95";
+
+  const bgPath = document.createElementNS(svgNS, 'path');
+  bgPath.setAttribute('d', d);
+  bgPath.setAttribute('class', 'map-bg-path');
+  svg.appendChild(bgPath);
+
+  const progPath = document.createElementNS(svgNS, 'path');
+  progPath.setAttribute('d', d);
+  progPath.setAttribute('class', 'map-progress-path');
+  svg.appendChild(progPath);
+
+  const len = bgPath.getTotalLength();
+  progPath.style.strokeDasharray = len;
+  progPath.style.strokeDashoffset = len;
+
+  const markerDefs = [
+    { icon: "🚩", short: "Hoje" },
+    ...CONFIG.stages.map(s => ({ icon: s.icon, short: s.short })),
+    { icon: "❤️", short: "" }
+  ];
+  const nSegments = markerDefs.length - 1;
+
+  const points = markerDefs.map((m, idx) => {
+    const frac = idx / nSegments;
+    const pt = bgPath.getPointAtLength(frac * len);
+
+    const g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('class', 'pin' + (idx === 0 ? ' visited' : ''));
+    g.setAttribute('transform', `translate(${pt.x},${pt.y})`);
+
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('r', '11');
+    circle.setAttribute('class', 'pin-circle');
+    g.appendChild(circle);
+
+    const iconText = document.createElementNS(svgNS, 'text');
+    iconText.setAttribute('class', 'pin-icon');
+    iconText.setAttribute('dy', '4.5');
+    iconText.textContent = idx === 0 ? m.icon : '•';
+    g.appendChild(iconText);
+
+    const labelText = document.createElementNS(svgNS, 'text');
+    labelText.setAttribute('class', 'pin-label');
+    labelText.setAttribute('y', '23');
+    labelText.textContent = m.short;
+    g.appendChild(labelText);
+
+    svg.appendChild(g);
+    return { x: pt.x, y: pt.y, icon: m.icon, short: m.short, el: g, iconEl: iconText };
+  });
+
+  const car = document.createElementNS(svgNS, 'g');
+  car.setAttribute('class', 'car-g');
+  car.setAttribute('transform', `translate(${points[0].x},${points[0].y - 16})`);
+  const carIcon = document.createElementNS(svgNS, 'text');
+  carIcon.setAttribute('class', 'car-icon');
+  carIcon.setAttribute('dy', '5');
+  carIcon.textContent = '🚗';
+  car.appendChild(carIcon);
+  svg.appendChild(car);
+
+  return { bgPath, progPath, len, points, car, nSegments };
+}
+
+function updateMap(carPinIndex){
+  if(!map) return;
+  const target = (carPinIndex / map.nSegments) * map.len;
+  map.progPath.style.strokeDashoffset = map.len - target;
+  const pt = map.points[carPinIndex];
+  map.car.setAttribute('transform', `translate(${pt.x},${pt.y - 16})`);
+  map.points.forEach((p, idx) => {
+    const visited = idx <= carPinIndex;
+    p.el.classList.toggle('visited', visited);
+    p.iconEl.textContent = visited ? p.icon : '•';
+  });
+}
+
+/* ---------- galeria de fotos ---------- */
+function buildGallery(){
+  const wrap = document.getElementById('galleryStrip');
+  wrap.innerHTML = "";
+  CONFIG.stages.forEach((s, idx) => {
+    const slot = document.createElement('div');
+    slot.className = 'gallery-slot';
+    slot.id = 'gslot-' + idx;
+    slot.textContent = '•';
+    wrap.appendChild(slot);
+  });
+}
+function revealGallerySlot(idx){
+  const slot = document.getElementById('gslot-' + idx);
+  if(!slot) return;
+  const stage = CONFIG.stages[idx];
+  slot.textContent = stage.icon;
+  slot.classList.add('filled');
+}
+function restoreGalleryFromProgress(){
+  // Se reabrirem o site a meio do jogo, preenche logo as paragens já resolvidas.
+  if(typeof current === 'number'){
+    for(let idx = 0; idx < Math.min(current, total); idx++) revealGallerySlot(idx);
+  }
+}
+
+/* ---------- som ---------- */
+let audioCtx = null;
+function playChime(){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    [ [523.25, now, 0.14], [783.99, now + 0.11, 0.22] ].forEach(([freq, start, dur]) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.16, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.02);
+    });
+  }catch(e){ /* som não é essencial — ignora silenciosamente */ }
+}
+
+function vibrateSuccess(){
+  try{
+    if(navigator.vibrate) navigator.vibrate([35, 30, 70]);
+  }catch(e){ /* vibração não é essencial — ignora silenciosamente */ }
+}
+
+/* ---------- confetes ---------- */
+function fireConfetti(){
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  ctx.scale(dpr, dpr);
+  const colors = ['#C1503F', '#D4A857', '#6B7A6E', '#9E3C2E', '#FFFBF3'];
+  const particles = Array.from({length: 130}, () => ({
+    x: Math.random() * window.innerWidth,
+    y: -20 - Math.random() * window.innerHeight * 0.5,
+    r: 4 + Math.random() * 5,
+    c: colors[Math.floor(Math.random()*colors.length)],
+    vy: 2 + Math.random() * 2.5,
+    vx: (Math.random() - 0.5) * 2,
+    rot: Math.random() * 360,
+    vr: (Math.random() - 0.5) * 10,
+    shape: Math.random() > 0.5 ? 'rect' : 'circle'
+  }));
+  let frame = 0;
+  function tick(){
+    frame++;
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    let stillAlive = false;
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      if(p.y < window.innerHeight + 20) stillAlive = true;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.c;
+      if(p.shape === 'rect') ctx.fillRect(-p.r/2, -p.r/2, p.r, p.r*0.6);
+      else { ctx.beginPath(); ctx.arc(0,0,p.r/2,0,Math.PI*2); ctx.fill(); }
+      ctx.restore();
+    });
+    if(stillAlive && frame < 420) requestAnimationFrame(tick);
+    else ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  }
+  tick();
+}
+
+/* ---------- contador ao vivo ---------- */
+function startCounter(){
+  const startEl = new Date(CONFIG.coupleStartDate);
+  function tick(){
+    const diffMs = Date.now() - startEl.getTime();
+    const totalSeconds = Math.max(0, Math.floor(diffMs / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = String(val).padStart(2,'0'); };
+    const daysEl = document.getElementById('c-days');
+    if(daysEl) daysEl.textContent = days;
+    set('c-hours', hours); set('c-mins', mins); set('c-secs', secs);
+  }
+  tick();
+  clearInterval(counterInterval);
+  counterInterval = setInterval(tick, 1000);
+}
+
+/* ---------- curiosidades ---------- */
+function daysSince(dateStr){
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+}
+function formatDuration(days){
+  if(days < 30) return days + (days === 1 ? " dia" : " dias");
+  const years = Math.floor(days / 365.25);
+  const remDays = days - Math.floor(years * 365.25);
+  const months = Math.floor(remDays / 30.44);
+  if(years <= 0) return months + (months === 1 ? " mês" : " meses");
+  let str = years + (years === 1 ? " ano" : " anos");
+  if(months > 0) str += " e " + months + (months === 1 ? " mês" : " meses");
+  return str;
+}
+function buildFunFactsHTML(){
+  const relDays = daysSince(CONFIG.coupleStartDate);
+  return CONFIG.funFacts
+    .map(f => {
+      const itemDays = daysSince(f.date);
+      const diff = relDays - itemDays;
+      if(diff < 0) return ''; // segurança: só mostra se não for mais velho que a relação
+      if(diff === 0){
+        return `
+          <div class="funfact-row">
+            <span class="funfact-icon">${f.icon}</span>
+            <span class="funfact-text"><b>${f.label}</b> —
+            <span class="funfact-diff">no exato dia em que começámos a namorar.</span></span>
+          </div>`;
+      }
+      return `
+        <div class="funfact-row">
+          <span class="funfact-icon">${f.icon}</span>
+          <span class="funfact-text"><b>${f.label}</b> há ${formatDuration(itemDays)} —
+          <span class="funfact-diff">${formatDuration(diff)} menos do que nós.</span></span>
+        </div>`;
+    })
+    .join('');
+}
+
+/* ---------- ecrãs ---------- */
+function renderLock(){
+  const card = document.getElementById('card');
+  card.innerHTML = `
+    <div class="center-text">
+      <span class="lock-icon">🔒</span>
+      <p class="lead" style="white-space:pre-line;">${CONFIG.vault.prompt}</p>
+      <input type="tel" id="vaultInput" placeholder="${CONFIG.vault.placeholder}" inputmode="numeric" autocomplete="off">
+      <div class="feedback" id="vaultFeedback"></div>
+      <button class="btn" id="vaultBtn">Abrir o mapa</button>
+    </div>
+  `;
+  const input = document.getElementById('vaultInput');
+  const feedback = document.getElementById('vaultFeedback');
+  function tryUnlock(){
+    const val = normalizeDigits(input.value);
+    const ok = CONFIG.vault.accepted.some(a => normalizeDigits(a) === val);
+    if(ok){
+      feedback.textContent = "Correto. Bem-vinda de volta.";
+      feedback.className = "feedback success";
+      setTimeout(()=>{ current = -1; saveProgress(); render(); }, 500);
+    } else {
+      feedback.textContent = "Essa não é a data certa...";
+      feedback.className = "feedback error";
+    }
+  }
+  document.getElementById('vaultBtn').onclick = tryUnlock;
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') tryUnlock(); });
+}
+
+function renderIntro(){
+  const card = document.getElementById('card');
+  card.innerHTML = `
+    <div class="center-text">
+      <div class="heart-divider">♥ ♥ ♥</div>
+      <div class="counter">
+        <div class="counter-unit"><span class="counter-num" id="c-days">0</span><span class="counter-label">dias</span></div>
+        <div class="counter-unit"><span class="counter-num" id="c-hours">00</span><span class="counter-label">horas</span></div>
+        <div class="counter-unit"><span class="counter-num" id="c-mins">00</span><span class="counter-label">min</span></div>
+        <div class="counter-unit"><span class="counter-num" id="c-secs">00</span><span class="counter-label">seg</span></div>
+      </div>
+      <button class="funfacts-toggle" id="funfactsToggle">✨ Coisas mais novas do que nós</button>
+      <div class="funfacts-list" id="funfactsList"></div>
+      <p class="lead" style="margin-top:20px;">${CONFIG.introText}</p>
+      <button class="btn" id="startBtn">${CONFIG.introButton}</button>
+    </div>
+  `;
+  startCounter();
+
+  const toggle = document.getElementById('funfactsToggle');
+  const list = document.getElementById('funfactsList');
+  let loaded = false;
+  toggle.onclick = () => {
+    if(!loaded){ list.innerHTML = buildFunFactsHTML(); loaded = true; }
+    const isOpen = list.classList.toggle('open');
+    toggle.textContent = isOpen ? "✨ Esconder curiosidades" : "✨ Coisas mais novas do que nós";
+  };
+
+  document.getElementById('startBtn').onclick = () => { current = 0; saveProgress(); render(); };
+}
+
+function renderStage(i){
+  const stage = CONFIG.stages[i];
+  const card = document.getElementById('card');
+  card.innerHTML = `
+    <div class="stage-label">
+      <span>${stage.label}</span>
+    </div>
+    <p class="riddle">${stage.riddle}</p>
+    <input type="text" id="answerInput" placeholder="Onde é?" autocomplete="off" autocapitalize="off">
+    <div class="feedback" id="feedback"></div>
+    <button class="btn" id="confirmBtn">Confirmar</button>
+  `;
+
+  const input = document.getElementById('answerInput');
+  const feedback = document.getElementById('feedback');
+
+  function check(){
+    const val = normalize(input.value);
+    if(!val){ return; }
+    const ok = stage.answers.some(a => val.includes(normalize(a)) || normalize(a).includes(val));
+    if(ok){
+      feedback.textContent = "";
+      playChime();
+      vibrateSuccess();
+      current = i + 1;
+      saveProgress();
+      renderReveal(i);
+    } else {
+      feedback.textContent = "Hmm, não é bem isso... tenta outra vez.";
+      feedback.className = "feedback error";
+    }
+  }
+
+  document.getElementById('confirmBtn').onclick = check;
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') check(); });
+}
+
+function renderReveal(i){
+  const stage = CONFIG.stages[i];
+  updateMap(i + 1);
+  revealGallerySlot(i);
+
+  const card = document.getElementById('card');
+  card.innerHTML = `
+    <div class="reveal-wrap">
+      <div class="stamp">
+        <span class="stamp-icon">${stage.icon}</span>
+        <span class="stamp-text">VISITADO</span>
+      </div>
+      <p class="reveal-place">${stage.short}</p>
+      <p class="reveal-sub">Mais uma paragem guardada. Vamos para a próxima?</p>
+      <button class="btn" id="nextBtn">Continuar</button>
+    </div>
+  `;
+  document.getElementById('nextBtn').onclick = () => { render(); };
+}
+
+function renderFinal(){
+  const card = document.getElementById('card');
+  card.innerHTML = `
+    <div class="heart-divider">♥ ♥ ♥</div>
+    <h2 style="font-family:'Fraunces',serif; font-weight:600; font-size:21px; text-align:center; margin:0 0 18px;">${CONFIG.finalTitle}</h2>
+    <div class="final-postcard" id="postcardEl">
+      <p>${CONFIG.finalMessage.replace(/\n/g,'<br>')}</p>
+      <div class="signature">${CONFIG.signature}</div>
+    </div>
+    <button class="btn btn-secondary" id="downloadBtn">Descarregar postal 💌</button>
+  `;
+  document.getElementById('downloadBtn').onclick = downloadPostcard;
+  setTimeout(fireConfetti, 250);
+}
+
+/* ---------- postal descarregável ---------- */
+function wrapText(ctx, text, maxWidth){
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  words.forEach(word => {
+    const test = line ? line + ' ' + word : word;
+    if(ctx.measureText(test).width > maxWidth && line){
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  });
+  if(line) lines.push(line);
+  return lines;
+}
+
+function downloadPostcard(){
+  const W = 900;
+  const messageTop = 340;
+  const maxWidth = W - 200;
+
+  // 1ª passagem: só para medir quanto espaço o texto vai ocupar,
+  // para a altura do postal se ajustar ao tamanho da mensagem.
+  const measureCanvas = document.createElement('canvas');
+  const mctx = measureCanvas.getContext('2d');
+  mctx.font = '26px Georgia, serif';
+  const paragraphs = CONFIG.finalMessage.split('\n');
+  let measuredY = messageTop;
+  paragraphs.forEach(p => {
+    if(p.trim() === ''){ measuredY += 20; return; }
+    const lines = wrapText(mctx, p, maxWidth);
+    measuredY += lines.length * 40 + 14;
+  });
+  const signatureY = measuredY + 70;
+  const dateY = signatureY + 50;
+  const H = Math.max(1200, dateY + 60);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const bg = ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0, '#F7EFE3');
+  bg.addColorStop(1, '#F1E4D0');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle = 'rgba(212,168,87,0.9)';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([2, 14]);
+  ctx.strokeRect(40, 40, W-80, H-80);
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#C1503F';
+  ctx.textAlign = 'center';
+  ctx.font = '28px Georgia, serif';
+  ctx.fillText('♥ ♥ ♥', W/2, 150);
+
+  ctx.fillStyle = '#2B2420';
+  ctx.font = 'italic 34px Georgia, serif';
+  wrapText(ctx, CONFIG.finalTitle, W-180).forEach((line, idx) => {
+    ctx.fillText(line, W/2, 220 + idx*44);
+  });
+
+  ctx.font = '26px Georgia, serif';
+  ctx.textAlign = 'left';
+  let y = messageTop;
+  paragraphs.forEach(p => {
+    if(p.trim() === ''){ y += 20; return; }
+    const lines = wrapText(ctx, p, maxWidth);
+    lines.forEach(line => { ctx.fillText(line, 100, y); y += 40; });
+    y += 14;
+  });
+
+  ctx.textAlign = 'right';
+  ctx.font = 'italic 30px Georgia, serif';
+  ctx.fillStyle = '#C1503F';
+  ctx.fillText(CONFIG.signature, W-100, signatureY);
+
+  ctx.textAlign = 'center';
+  ctx.font = '16px Georgia, serif';
+  ctx.fillStyle = '#6b6155';
+  ctx.fillText('17.06.2022 — 4 anos', W/2, dateY);
+
+  const link = document.createElement('a');
+  link.download = 'postal-4-anos.png';
+  link.href = canvas.toDataURL('image/png');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function render(){
+  let carPinIndex;
+  if(current === 'locked' || current < 0) carPinIndex = 0;
+  else if(current >= total) carPinIndex = map.nSegments;
+  else carPinIndex = current;
+  if(current !== 'locked') updateMap(carPinIndex);
+
+  if(current === 'locked') renderLock();
+  else if(current < 0) renderIntro();
+  else if(current < total) renderStage(current);
+  else renderFinal();
+}
+
+try{ map = buildMap(); }catch(e){ console.warn('Mapa não desenhado:', e); map = null; }
+try{ buildGallery(); }catch(e){ console.warn('Galeria não construída:', e); }
+try{ restoreGalleryFromProgress(); }catch(e){ console.warn('Progresso da galeria não restaurado:', e); }
+try{
+  render();
+}catch(e){
+  console.error('Erro ao carregar o jogo:', e);
+  document.getElementById('card').innerHTML =
+    '<p style="font-family:\'Inter\',sans-serif; font-size:14px; color:var(--ink-soft); text-align:center; line-height:1.6;">' +
+    'Não consegui carregar o jogo aqui.<br>Experimenta abrir este ficheiro diretamente no <strong>Safari</strong> ' +
+    '(em vez da pré-visualização da app Ficheiros): abre o Safari, toca em Ficheiros/⋯ ou usa o botão de partilha ' +
+    'do ficheiro e escolhe "Abrir no Safari".</p>';
+}
+
+document.getElementById('resetLink').addEventListener('click', e => {
+  e.preventDefault();
+  if(confirm('Reiniciar o mapa do zero? Perde-se o progresso guardado neste telemóvel.')){
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(err){}
+    current = CONFIG.vault.enabled ? 'locked' : -1;
+    document.getElementById('galleryStrip').querySelectorAll('.gallery-slot').forEach(s => { s.className = 'gallery-slot'; s.textContent = '•'; });
+    render();
+  }
+});
+</script>
+</body>
+</html>
